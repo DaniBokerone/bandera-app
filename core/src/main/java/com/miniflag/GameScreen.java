@@ -1,29 +1,46 @@
 package com.miniflag;
 
-import com.badlogic.gdx.ApplicationAdapter;
-import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.utils.ScreenUtils;
 
-/** {@link com.badlogic.gdx.ApplicationListener} implementation shared by all platforms. */
-public class Main extends ApplicationAdapter {
+public class GameScreen implements Screen {
+    private MainGame game;
     private SpriteBatch batch;
     private Texture image;
 
+    public GameScreen(MainGame game) {
+        this.game = game;
+    }
+
     @Override
-    public void create() {
+    public void show() {
         batch = new SpriteBatch();
         image = new Texture("libgdx.png");
     }
 
     @Override
-    public void render() {
+    public void render(float delta) {
         ScreenUtils.clear(0.15f, 0.15f, 0.2f, 1f);
+
         batch.begin();
         batch.draw(image, 140, 210);
         batch.end();
+    }
+
+    @Override
+    public void resize(int width, int height) {}
+
+    @Override
+    public void pause() {}
+
+    @Override
+    public void resume() {}
+
+    @Override
+    public void hide() {
+        dispose();
     }
 
     @Override
