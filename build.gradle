@@ -26,6 +26,14 @@ allprojects {
       testOutputDir file('build/classes/java/test')
     }
   }
+
+  ext {
+    wsVersion = '1.9.10.3'
+  }
+
+  repositories {
+    maven { url "https://jitpack.io" }
+  }
 }
 
 configure(subprojects - project(':android')) {
@@ -58,7 +66,7 @@ configure(subprojects - project(':android')) {
   }
   compileKotlin.compilerOptions.jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_1_8)
   compileTestKotlin.compilerOptions.jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_1_8)
-  
+
 }
 
 subprojects {
