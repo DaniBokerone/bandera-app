@@ -1,10 +1,12 @@
 package com.miniflag;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Net;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
+import com.badlogic.gdx.net.HttpRequestBuilder;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.scenes.scene2d.Stage;
@@ -100,6 +102,9 @@ public class MenuScreen implements Screen {
         });
 
         stage.addActor(startButton);
+
+        NetworkManager network = new NetworkManager();
+        network.testHttpConnection();
     }
 
     @Override

@@ -7,4 +7,8 @@ public class MainGame extends Game {
     public void create() {
         this.setScreen(new MenuScreen(this));
     }
+
+    public void startGame() {
+        this.setScreen(new GameScreen(this));
+    }
 }
