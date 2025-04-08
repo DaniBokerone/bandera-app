@@ -26,6 +26,8 @@ public class MenuScreen implements Screen {
     private Skin skin;
     private Label playersLabel;
 
+    private int lastKnownPlayerCount = -1;
+
     public MenuScreen(MainGame game) {
         this.game = game;
     }
@@ -67,7 +69,7 @@ public class MenuScreen implements Screen {
         labelStyle.fontColor = Color.WHITE;
 
         // Label con número de jugadores
-        Label playersLabel = new Label("Current players: --", labelStyle);
+        playersLabel = new Label("Current players: --", labelStyle);
 
         // Posición del label (encima del botón)
         float labelWidth = Gdx.graphics.getWidth() * 0.4f;
@@ -97,10 +99,10 @@ public class MenuScreen implements Screen {
         startButton.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                // Enviar datos?
-                NetworkManager network = new NetworkManager();
+                NetworkManager network = game.network;
                 network.testHttpConnection();
-                game.setScreen(new GameScreen(game));
+
+                game.startGame();
             }
         });
 
@@ -121,6 +123,12 @@ public class MenuScreen implements Screen {
         float y = Gdx.graphics.getHeight() * 0.9f;
         titleFont.draw(batch, title, x, y);
         batch.end();
+
+        int newCount = game.currentPlayerCount;
+        if (newCount != lastKnownPlayerCount) {
+            playersLabel.setText("Current players: " + newCount);
+            lastKnownPlayerCount = newCount;
+        }
 
         stage.act(delta);
         stage.draw();

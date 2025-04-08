@@ -1,6 +1,7 @@
 package com.miniflag;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Net;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
@@ -9,6 +10,7 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.badlogic.gdx.net.HttpRequestBuilder;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
@@ -17,6 +19,8 @@ import com.badlogic.gdx.scenes.scene2d.ui.Touchpad.TouchpadStyle;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
+import com.badlogic.gdx.utils.JsonReader;
+import com.badlogic.gdx.utils.JsonValue;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 
@@ -26,9 +30,16 @@ public class GameScreen implements Screen {
     private Stage stage;
     private Touchpad touchpad;
 
+    //MAPA
+    private Texture backgroundTexture;
+
     // PERSONAJE
     private float cubeX, cubeY;
-    private float cubeSize = 50; // Tamaño del cubo
+    private float cubeSize = 50;
+    // PERSONAJE - POSICION
+    private float lastSentX = -1;
+    private float lastSentY = -1;
+
 
     private ShapeRenderer shapeRenderer;
 
@@ -41,8 +52,13 @@ public class GameScreen implements Screen {
     private BitmapFont font;
     private TextButton exitButton;
 
+    //CONEXION
+    private NetworkManager network;
+
     public GameScreen(MainGame game) {
+
         this.game = game;
+        this.network = game.network;
     }
 
     @Override
@@ -87,6 +103,9 @@ public class GameScreen implements Screen {
 
         stage.addActor(touchpad);
 
+        //MAPA
+        backgroundTexture = new Texture("game_assets/map/mapa_estatico.jpg");
+
         // Personaje
         cubeX = Gdx.graphics.getWidth() / 2f - cubeSize / 2f;
         cubeY = Gdx.graphics.getHeight() / 2f - cubeSize / 2f;
@@ -95,8 +114,7 @@ public class GameScreen implements Screen {
 
         // Llave
         itemTexture = new Texture("game_assets/items/game_key.png");
-        itemX = Gdx.graphics.getWidth() / 2f - itemSize / 2f;
-        itemY = Gdx.graphics.getHeight() / 2f - itemSize / 2f;
+        get_initial_key();
 
     }
 
@@ -116,6 +134,11 @@ public class GameScreen implements Screen {
         cubeX = Math.max(0, Math.min(cubeX, Gdx.graphics.getWidth() - cubeSize));
         cubeY = Math.max(0, Math.min(cubeY, Gdx.graphics.getHeight() - cubeSize));
 
+        // DIBUJAR MAPA
+        batch.begin();
+        batch.draw(backgroundTexture, 0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+        batch.end();
+
         // DIBUJAR PLAYER(Temporal)
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
         shapeRenderer.setColor(Color.BLUE);
@@ -124,7 +147,7 @@ public class GameScreen implements Screen {
 
         // DIBUJAR ITEM
         batch.begin();
-        batch.draw(itemTexture, itemX, itemY, itemSize, itemSize);  // Dibuja la imagen en el centro
+        batch.draw(itemTexture, itemX, itemY, itemSize, itemSize);
         batch.end();
 
         // UPDATE SCENARIO
@@ -134,7 +157,62 @@ public class GameScreen implements Screen {
         if (exitButton.isPressed()) {
             game.startMenu();
         }
+
+        if (network != null && network.isConnected()) {
+            if (cubeX != lastSentX || cubeY != lastSentY) {
+                String message = String.format(
+                    "{\"type\":\"position\", \"x\": %.2f, \"y\": %.2f}",
+                    cubeX, cubeY
+                );
+                network.sendData(message);
+
+                lastSentX = cubeX;
+                lastSentY = cubeY;
+            }
+        }
     }
+    public void get_initial_key() {
+        System.out.println("Solicitando la posición de la llave...");
+
+        HttpRequestBuilder requestBuilder = new HttpRequestBuilder();
+        String url = "http://" + network.address + ":" + network.port + "/item-position";
+
+        Net.HttpRequest request = requestBuilder.newRequest()
+            .method(Net.HttpMethods.GET)
+            .url(url)
+            .build();
+
+        Gdx.net.sendHttpRequest(request, new Net.HttpResponseListener() {
+            @Override
+            public void handleHttpResponse(Net.HttpResponse httpResponse) {
+                String response = httpResponse.getResultAsString();
+                System.out.println("Posición de la llave: " + response);
+
+                try {
+                    JsonReader jsonReader = new JsonReader();
+                    JsonValue jsonResponse = jsonReader.parse(response);
+                    itemX = jsonResponse.getFloat("x");
+                    itemY = jsonResponse.getFloat("y");
+                    System.out.println("Posición X: " + itemX + ", Posición Y: " + itemY);
+                } catch (Exception e) {
+                    System.out.println("Error al procesar la respuesta: " + e.getMessage());
+                }
+            }
+
+            @Override
+            public void failed(Throwable t) {
+                System.out.println("Error al solicitar la posición de la llave: " + t.getMessage());
+            }
+
+            @Override
+            public void cancelled() {
+                System.out.println("Petición cancelada.");
+            }
+        });
+    }
+
+
+
 
     @Override
     public void resize(int width, int height) {
@@ -156,6 +234,7 @@ public class GameScreen implements Screen {
     public void dispose() {
         batch.dispose();
         stage.dispose();
+        backgroundTexture.dispose();
         shapeRenderer.dispose();
         itemTexture.dispose();
         font.dispose();

@@ -3,16 +3,29 @@ package com.miniflag;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Net;
 import com.badlogic.gdx.net.HttpRequestBuilder;
+import com.badlogic.gdx.utils.JsonReader;
+import com.badlogic.gdx.utils.JsonValue;
 import com.github.czyzby.websocket.WebSocket;
 import com.github.czyzby.websocket.WebSocketListener;
 import com.github.czyzby.websocket.WebSockets;
 
+
 public class NetworkManager {
     // Dirección del host y puerto
-    private String address = "10.0.2.2";
-    private int port = 8888;
+    String address = "10.0.2.2";
+    int port = 8888;
     private WebSocket socket;
     private boolean isConnected = false;
+
+    //MANEJAR CONTADOR JUGADORES
+    public interface PlayerCountListener {
+        void onPlayerCountUpdate(int count);
+    }
+    private PlayerCountListener playerCountListener;
+
+    public void setPlayerCountListener(PlayerCountListener listener) {
+        this.playerCountListener = listener;
+    }
 
     public NetworkManager() {
         System.out.println("Iniciando NetworkManager...");
@@ -104,7 +117,19 @@ public class NetworkManager {
 
         @Override
         public boolean onMessage(WebSocket webSocket, String packet) {
-            System.out.println("Mensaje recibido: " + packet);
+            /*System.out.println("Mensaje recibido: " + packet);*/
+
+            if (packet.contains("\"type\":\"playerCount\"")) {
+                try {
+                    int count = Integer.parseInt(packet.replaceAll("[^0-9]", ""));
+                    if (playerCountListener != null) {
+                        playerCountListener.onPlayerCountUpdate(count);
+                    }
+                } catch (Exception e) {
+                    System.out.println("Error al parsear playerCount: " + e.getMessage());
+                }
+            }
+
             return true;
         }
 

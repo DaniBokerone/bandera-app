@@ -3,8 +3,18 @@ package com.miniflag;
 import com.badlogic.gdx.Game;
 
 public class MainGame extends Game {
+
+    public NetworkManager network;
+    public int currentPlayerCount = 0;
+
     @Override
     public void create() {
+        network = new NetworkManager();
+
+        network.setPlayerCountListener(count -> {
+            currentPlayerCount = count;
+        });
+
         this.setScreen(new MenuScreen(this));
     }
 
@@ -13,6 +23,7 @@ public class MainGame extends Game {
     }
 
     public void startGame() {
+
         this.setScreen(new GameScreen(this));
     }
 }
