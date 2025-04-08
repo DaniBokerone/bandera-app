@@ -4,13 +4,18 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.ui.Touchpad;
 import com.badlogic.gdx.scenes.scene2d.ui.Touchpad.TouchpadStyle;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
+import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
@@ -25,13 +30,16 @@ public class GameScreen implements Screen {
     private float cubeX, cubeY;
     private float cubeSize = 50; // Tamaño del cubo
 
-
     private ShapeRenderer shapeRenderer;
 
     // LLAVE
     private Texture itemTexture;
     private float itemX, itemY;
     private float itemSize = 150;
+
+    // Para la fuente
+    private BitmapFont font;
+    private TextButton exitButton;
 
     public GameScreen(MainGame game) {
         this.game = game;
@@ -44,6 +52,22 @@ public class GameScreen implements Screen {
         Gdx.input.setInputProcessor(stage);
 
         Skin skin = new Skin(Gdx.files.internal("skin/flat-earth-ui.json"));
+
+        FreeTypeFontGenerator generator = new FreeTypeFontGenerator(Gdx.files.internal("fonts/Pixel_font.ttf"));
+        FreeTypeFontGenerator.FreeTypeFontParameter parameter = new FreeTypeFontGenerator.FreeTypeFontParameter();
+        parameter.size = (int) (Gdx.graphics.getWidth() * 0.025f);
+        font = generator.generateFont(parameter);
+        generator.dispose();
+
+        TextButton.TextButtonStyle buttonStyle = new TextButton.TextButtonStyle();
+        buttonStyle.font = font;
+        buttonStyle.up = skin.getDrawable("button-c");
+        buttonStyle.down = skin.getDrawable("button-p");
+
+        exitButton = new TextButton("Menu", buttonStyle);
+        exitButton.setPosition(Gdx.graphics.getWidth()* 0.9f , Gdx.graphics.getHeight()* 0.9f);
+
+        stage.addActor(exitButton);
 
         // Touchpad para el player
         TextureRegion touchpadBackground = skin.getRegion("touchpad");
@@ -74,9 +98,6 @@ public class GameScreen implements Screen {
         itemX = Gdx.graphics.getWidth() / 2f - itemSize / 2f;
         itemY = Gdx.graphics.getHeight() / 2f - itemSize / 2f;
 
-        batch.begin();
-        batch.draw(itemTexture, itemX, itemY, itemSize, itemSize);
-        batch.end();
     }
 
     @Override
@@ -109,6 +130,10 @@ public class GameScreen implements Screen {
         // UPDATE SCENARIO
         stage.act(Math.min(Gdx.graphics.getDeltaTime(), 1 / 30f));
         stage.draw();
+
+        if (exitButton.isPressed()) {
+            game.startMenu();
+        }
     }
 
     @Override
@@ -133,5 +158,6 @@ public class GameScreen implements Screen {
         stage.dispose();
         shapeRenderer.dispose();
         itemTexture.dispose();
+        font.dispose();
     }
 }

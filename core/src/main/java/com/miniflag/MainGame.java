@@ -8,6 +8,10 @@ public class MainGame extends Game {
         this.setScreen(new MenuScreen(this));
     }
 
+    public void startMenu() {
+        this.setScreen(new MenuScreen(this));
+    }
+
     public void startGame() {
         this.setScreen(new GameScreen(this));
     }
