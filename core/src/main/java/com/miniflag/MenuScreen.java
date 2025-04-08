@@ -97,14 +97,16 @@ public class MenuScreen implements Screen {
         startButton.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
+                // Enviar datos?
+                NetworkManager network = new NetworkManager();
+                network.testHttpConnection();
                 game.setScreen(new GameScreen(game));
             }
         });
 
         stage.addActor(startButton);
 
-        NetworkManager network = new NetworkManager();
-        network.testHttpConnection();
+
     }
 
     @Override

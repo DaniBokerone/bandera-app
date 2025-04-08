@@ -8,15 +8,22 @@ import com.github.czyzby.websocket.WebSocketListener;
 import com.github.czyzby.websocket.WebSockets;
 
 public class NetworkManager {
+    // Dirección del host y puerto
+    private String address = "10.0.2.2";
+    private int port = 8888;
     private WebSocket socket;
-    private String address = "bandera5.ieti.site";
-    private int port = 443;
     private boolean isConnected = false;
 
     public NetworkManager() {
         System.out.println("Iniciando NetworkManager...");
 
-        socket = WebSockets.newSocket(WebSockets.toSecureWebSocketUrl(address, port));
+        // Construimos la URL con el esquema ws:// (no wss://) ya que el servidor no tiene TLS,
+        // y se conecta a la ruta '/test'
+        String wsUrl = "ws://" + address + ":" + port + "/test";
+        System.out.println("Conectando a: " + wsUrl);
+
+        // Se crea el socket utilizando la URL de WebSocket configurada
+        socket = WebSockets.newSocket(wsUrl);
 
         socket.setSendGracefully(false);
         socket.addListener(new MyWebSocketListener());
@@ -45,9 +52,13 @@ public class NetworkManager {
         return isConnected;
     }
 
+    // Método para probar la conexión HTTP hacia el servidor en /test
+    // Nota: Si estás usando Android 9 (API 28) o superior, asegúrate de configurar
+    // el tráfico en texto plano (HTTP) en el archivo de seguridad de red, o usar HTTPS.
     public void testHttpConnection() {
+        System.out.println("Intentando conexión HTTP...");
         HttpRequestBuilder requestBuilder = new HttpRequestBuilder();
-        String fullUrl = "https://" + address +  "/test";
+        String fullUrl = "http://" + address + ":" + port + "/test";
 
         Net.HttpRequest request = requestBuilder.newRequest()
             .method(Net.HttpMethods.GET)
@@ -73,11 +84,13 @@ public class NetworkManager {
         });
     }
 
+    // Listener para gestionar eventos en la conexión WebSocket
     private class MyWebSocketListener implements WebSocketListener {
         @Override
         public boolean onOpen(WebSocket webSocket) {
             System.out.println("Conexión WebSocket abierta.");
             isConnected = true;
+            // Envía un mensaje inicial al establecer la conexión
             socket.send("Hola servidor desde MiniFlag!");
             return true;
         }
