@@ -29,9 +29,8 @@ public class NetworkManager {
     public NetworkManager() {
         System.out.println("Iniciando NetworkManager...");
 
-        // Construimos la URL con el esquema ws:// (no wss://) ya que el servidor no tiene TLS,
-        // y se conecta a la ruta '/test'
-        String wsUrl = "ws://" + address + ":" + port + "/test";
+
+        String wsUrl = "wss://" + address + ":" + port ;
         System.out.println("Conectando a: " + wsUrl);
 
         // Se crea el socket utilizando la URL de WebSocket configurada
@@ -64,9 +63,6 @@ public class NetworkManager {
         return isConnected;
     }
 
-    // Método para probar la conexión HTTP hacia el servidor en /test
-    // Nota: Si estás usando Android 9 (API 28) o superior, asegúrate de configurar
-    // el tráfico en texto plano (HTTP) en el archivo de seguridad de red, o usar HTTPS.
     public void testHttpConnection() {
         System.out.println("Intentando conexión HTTP...");
         HttpRequestBuilder requestBuilder = new HttpRequestBuilder();

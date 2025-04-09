@@ -4,6 +4,7 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Net;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
@@ -86,22 +87,34 @@ public class GameScreen implements Screen {
         stage.addActor(exitButton);
 
         // Touchpad para el player
-        TextureRegion touchpadBackground = skin.getRegion("touchpad");
+
         TextureRegion touchpadKnob = skin.getRegion("touchpad-knob");
 
-        TextureRegionDrawable backgroundDrawable = new TextureRegionDrawable(touchpadBackground);
+// Crear drawable transparente para el fondo
+        Pixmap pixmap = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
+        pixmap.setColor(1, 1, 1, 0); // Color blanco con alfa 0 (completamente transparente)
+        pixmap.fill();
+        Texture transparentTexture = new Texture(pixmap);
+        pixmap.dispose();
+        TextureRegionDrawable transparentBackgroundDrawable = new TextureRegionDrawable(new TextureRegion(transparentTexture));
+
+// Crear drawable para el knob (conservamos el original)
+        TextureRegion touchpadBackground = skin.getRegion("touchpad"); // Si no lo usas, puedes prescindir de este
         TextureRegionDrawable knobDrawable = new TextureRegionDrawable(touchpadKnob);
         knobDrawable.setMinWidth(touchpadKnob.getRegionWidth() * 5.5f);
         knobDrawable.setMinHeight(touchpadKnob.getRegionHeight() * 5.5f);
 
-        TouchpadStyle touchpadStyle = new TouchpadStyle();
-        touchpadStyle.background = backgroundDrawable;
-        touchpadStyle.knob = knobDrawable;
+// Configurar el TouchpadStyle asignando el background transparente
+        Touchpad.TouchpadStyle touchpadStyle = new Touchpad.TouchpadStyle();
+        touchpadStyle.background = transparentBackgroundDrawable; // Fondo transparente
+        touchpadStyle.knob = knobDrawable; // Knob sin cambios
 
+// Crear el Touchpad
         touchpad = new Touchpad(10, touchpadStyle);
         touchpad.setBounds(90, 90, Gdx.graphics.getWidth() * 0.15f, Gdx.graphics.getWidth() * 0.15f);
 
         stage.addActor(touchpad);
+
 
         //MAPA
         backgroundTexture = new Texture("game_assets/map/background.png");
