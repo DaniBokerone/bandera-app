@@ -64,9 +64,9 @@ public class NetworkManager {
     }
 
     public void testHttpConnection() {
-        System.out.println("Intentando conexión HTTP...");
+        System.out.println("Intentando conexion HTTP...");
         HttpRequestBuilder requestBuilder = new HttpRequestBuilder();
-        String fullUrl = "https://" + address + ":" + port + "/test";
+        String fullUrl = "https://" + address + "/test";
 
         Net.HttpRequest request = requestBuilder.newRequest()
             .method(Net.HttpMethods.GET)

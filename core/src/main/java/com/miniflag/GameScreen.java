@@ -188,7 +188,7 @@ public class GameScreen implements Screen {
         System.out.println("Solicitando la posición de la llave...");
 
         HttpRequestBuilder requestBuilder = new HttpRequestBuilder();
-        String url = "http://" + network.address + ":" + network.port + "/item-position";
+        String url = "https://" + network.address + "/item-position";
 
         Net.HttpRequest request = requestBuilder.newRequest()
             .method(Net.HttpMethods.GET)
