@@ -46,7 +46,7 @@ public class GameScreen implements Screen {
     // LLAVE
     private Texture itemTexture;
     private float itemX, itemY;
-    private float itemSize = 150;
+    private float itemSize = 200;
 
     // Para la fuente
     private BitmapFont font;
@@ -104,7 +104,7 @@ public class GameScreen implements Screen {
         stage.addActor(touchpad);
 
         //MAPA
-        backgroundTexture = new Texture("game_assets/map/mapa_estatico.jpg");
+        backgroundTexture = new Texture("game_assets/map/background.png");
 
         // Personaje
         cubeX = Gdx.graphics.getWidth() / 2f - cubeSize / 2f;
@@ -113,7 +113,7 @@ public class GameScreen implements Screen {
         shapeRenderer = new ShapeRenderer();
 
         // Llave
-        itemTexture = new Texture("game_assets/items/game_key.png");
+        itemTexture = new Texture("game_assets/items/flag.png");
         get_initial_key();
 
     }
@@ -147,7 +147,7 @@ public class GameScreen implements Screen {
 
         // DIBUJAR ITEM
         batch.begin();
-        batch.draw(itemTexture, itemX, itemY, itemSize, itemSize);
+        batch.draw(itemTexture, itemX, itemY, itemSize, itemSize+50);
         batch.end();
 
         // UPDATE SCENARIO
