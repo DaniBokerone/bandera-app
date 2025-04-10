@@ -11,8 +11,8 @@ import com.github.czyzby.websocket.WebSockets;
 
 public class NetworkManager {
     // Dirección del host y puerto
-    String address = "10.0.2.2";
-    int port = 8888;
+    String address = "bandera5.ieti.site";
+    int port = 443;
     private WebSocket socket;
     private boolean isConnected = false;
     public JsonValue gameState;
@@ -32,7 +32,7 @@ public class NetworkManager {
         System.out.println("Iniciando NetworkManager...");
 
 
-        String wsUrl = "ws://" + address + ":" + port ;
+        String wsUrl = "wss://" + address + ":" + port ;
         System.out.println("Conectando a: " + wsUrl);
 
         // Se crea el socket utilizando la URL de WebSocket configurada
@@ -76,7 +76,7 @@ public class NetworkManager {
     public void testHttpConnection() {
         System.out.println("Intentando conexion HTTP...");
         HttpRequestBuilder requestBuilder = new HttpRequestBuilder();
-        String fullUrl = "http://" + address + ":" + port + "/test";
+        String fullUrl = "https://" + address + "/test";
 
         Net.HttpRequest request = requestBuilder.newRequest()
             .method(Net.HttpMethods.GET)
