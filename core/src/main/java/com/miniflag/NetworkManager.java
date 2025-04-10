@@ -11,10 +11,12 @@ import com.github.czyzby.websocket.WebSockets;
 
 public class NetworkManager {
     // Dirección del host y puerto
-    String address = "bandera5.ieti.site";
-    int port = 443;
+    String address = "10.0.2.2";
+    int port = 8888;
     private WebSocket socket;
     private boolean isConnected = false;
+    public JsonValue gameState;
+    private static NetworkManager instance;
 
     //MANEJAR CONTADOR JUGADORES
     public interface PlayerCountListener {
@@ -30,7 +32,7 @@ public class NetworkManager {
         System.out.println("Iniciando NetworkManager...");
 
 
-        String wsUrl = "wss://" + address + ":" + port ;
+        String wsUrl = "ws://" + address + ":" + port ;
         System.out.println("Conectando a: " + wsUrl);
 
         // Se crea el socket utilizando la URL de WebSocket configurada
@@ -41,6 +43,14 @@ public class NetworkManager {
 
         socket.connect();
     }
+
+    public static NetworkManager getInstance() {
+        if(instance == null) {
+            instance = new NetworkManager();
+        }
+        return instance;
+    }
+
 
     public void sendData(String data) {
         if (isConnected && socket != null && socket.isOpen()) {
@@ -66,7 +76,7 @@ public class NetworkManager {
     public void testHttpConnection() {
         System.out.println("Intentando conexion HTTP...");
         HttpRequestBuilder requestBuilder = new HttpRequestBuilder();
-        String fullUrl = "https://" + address + "/test";
+        String fullUrl = "http://" + address + ":" + port + "/test";
 
         Net.HttpRequest request = requestBuilder.newRequest()
             .method(Net.HttpMethods.GET)
@@ -112,16 +122,25 @@ public class NetworkManager {
 
         @Override
         public boolean onMessage(WebSocket webSocket, String packet) {
-            /*System.out.println("Mensaje recibido: " + packet);*/
+//            System.out.println("Mensaje recibido: " + packet);
+            JsonReader reader = new JsonReader();
+            JsonValue response = reader.parse(packet);
 
-            if (packet.contains("\"type\":\"playerCount\"")) {
-                try {
-                    int count = Integer.parseInt(packet.replaceAll("[^0-9]", ""));
-                    if (playerCountListener != null) {
-                        playerCountListener.onPlayerCountUpdate(count);
+            if(response.has("type")) {
+                if(response.getString("type").equals("update")) {
+                    if(response.has("gameState")) {
+                        gameState = response.get("gameState");
+
                     }
-                } catch (Exception e) {
-                    System.out.println("Error al parsear playerCount: " + e.getMessage());
+                }else if(response.getString("type").equals("playerCount")) {
+                    try {
+                        int count = Integer.parseInt(packet.replaceAll("[^0-9]", ""));
+                        if (playerCountListener != null) {
+                            playerCountListener.onPlayerCountUpdate(count);
+                        }
+                    } catch (Exception e) {
+                        System.out.println("Error al parsear playerCount: " + e.getMessage());
+                    }
                 }
             }
 
