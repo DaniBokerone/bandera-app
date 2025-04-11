@@ -145,10 +145,6 @@ public class GameScreen implements Screen {
         cubeY = Gdx.graphics.getHeight() / 2f - cubeSize / 2f;
 
         shapeRenderer = new ShapeRenderer();
-
-        // Cargar la textura del objeto (ej. llave u orbe)
-        itemTexture = new Texture("game_assets/items/flag.png");
-        get_initial_key();
     }
 
     @Override
@@ -189,10 +185,17 @@ public class GameScreen implements Screen {
             shapeRenderer.end();
         }
 
-        // --- DIBUJO DE OBJETOS (por ejemplo, llave u orbe) ---
-        batch.begin();
-        batch.draw(itemTexture, itemX, itemY, itemSize, itemSize + 50);
-        batch.end();
+        if(conn.gameState.has("flagPos")) {
+            batch.begin();
+            System.out.println(conn.gameState);
+            itemX = conn.gameState.get("flagPos").getFloat("dx") * Gdx.graphics.getWidth();
+            itemY = (1f - conn.gameState.get("flagPos").getFloat("dy")) * Gdx.graphics.getHeight();
+
+            itemTexture = new Texture("game_assets/items/flag.png");
+
+            batch.draw(itemTexture, itemX, itemY, itemSize, itemSize + 50);
+            batch.end();
+        }
 
         // Actualiza y dibuja la interfaz de usuario (UI)
         stage.act(Math.min(Gdx.graphics.getDeltaTime(), 1 / 30f));
@@ -216,43 +219,6 @@ public class GameScreen implements Screen {
         }
     }
 
-    // Método para solicitar la posición inicial de un objeto (por ejemplo, llave) desde el servidor
-    public void get_initial_key() {
-        System.out.println("Solicitando la posición de la llave...");
-        HttpRequestBuilder requestBuilder = new HttpRequestBuilder();
-        String url = "https://" + conn.address + "/item-position";
-        Net.HttpRequest request = requestBuilder.newRequest()
-            .method(Net.HttpMethods.GET)
-            .url(url)
-            .build();
-
-        Gdx.net.sendHttpRequest(request, new Net.HttpResponseListener() {
-            @Override
-            public void handleHttpResponse(Net.HttpResponse httpResponse) {
-                String response = httpResponse.getResultAsString();
-                System.out.println("Posición de la llave: " + response);
-                try {
-                    JsonReader jsonReader = new JsonReader();
-                    JsonValue jsonResponse = jsonReader.parse(response);
-                    itemX = jsonResponse.getFloat("x");
-                    itemY = jsonResponse.getFloat("y");
-                    System.out.println("Posición X: " + itemX + ", Posición Y: " + itemY);
-                } catch (Exception e) {
-                    System.out.println("Error al procesar la respuesta: " + e.getMessage());
-                }
-            }
-
-            @Override
-            public void failed(Throwable t) {
-                System.out.println("Error al solicitar la posición de la llave: " + t.getMessage());
-            }
-
-            @Override
-            public void cancelled() {
-                System.out.println("Petición cancelada.");
-            }
-        });
-    }
 
     @Override
     public void resize(int width, int height) {
