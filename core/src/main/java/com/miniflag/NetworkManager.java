@@ -32,7 +32,7 @@ public class NetworkManager {
         System.out.println("Iniciando NetworkManager...");
 
 
-        String wsUrl = "wss://" + address + ":" + port ;
+        String wsUrl = "wss://" + address ;
         System.out.println("Conectando a: " + wsUrl);
 
         // Se crea el socket utilizando la URL de WebSocket configurada
@@ -76,7 +76,7 @@ public class NetworkManager {
     public void testHttpConnection() {
         System.out.println("Intentando conexion HTTP...");
         HttpRequestBuilder requestBuilder = new HttpRequestBuilder();
-        String fullUrl = "https://" + address + "/test";
+        String fullUrl = "http://" + address +  "/test";
 
         Net.HttpRequest request = requestBuilder.newRequest()
             .method(Net.HttpMethods.GET)
