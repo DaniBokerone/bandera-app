@@ -62,7 +62,7 @@ public class GameScreen implements Screen {
     private final float FRAME_DURATION = 0.1f;
     private final float SCREEN_WIDTH = 1920f;
     private final float SCREEN_HEIGHT = 1080f;
-    private final float WORLD_WIDTH = 3000f;
+    private final float WORLD_WIDTH = 4000f;
     private final float WORLD_HEIGHT = 3000f;
 
     // Fuente e interfaz
@@ -217,6 +217,14 @@ public class GameScreen implements Screen {
         ScreenUtils.clear(0.15f, 0.15f, 0.2f, 1f);
         stateTime += Gdx.graphics.getDeltaTime();
 
+        if(conn.gameState != null) {
+            if(conn.gameState.has("started")) {
+                if(!conn.gameState.getBoolean("started")) {
+                    game.setScreen(new MenuScreen((MainGame) game));
+                }
+            }
+        }
+
 
         // Límite de pantalla ??
         cubeX = Math.max(0, Math.min(cubeX, Gdx.graphics.getWidth() - cubeSize));
@@ -257,8 +265,8 @@ public class GameScreen implements Screen {
         if(conn.gameState.has("flagPos")) {
             batch.begin();
            // System.out.println(conn.gameState);
-            itemX = conn.gameState.get("flagPos").getFloat("dx") * Gdx.graphics.getWidth();
-            itemY = (1f - conn.gameState.get("flagPos").getFloat("dy")) * Gdx.graphics.getHeight();
+            itemX = conn.gameState.get("flagPos").getFloat("dx") * WORLD_WIDTH;
+            itemY = (1f - conn.gameState.get("flagPos").getFloat("dy")) * WORLD_HEIGHT;
 
             itemTexture = new Texture("game_assets/items/flag.png");
 
@@ -292,11 +300,16 @@ public class GameScreen implements Screen {
         if(!player.has("direction") || !player.has("moving")) {
             return;
         }
-        float playerX = player.getFloat("x") * Gdx.graphics.getWidth();
-        float playerY = (1f - player.getFloat("y")) * Gdx.graphics.getHeight();
-        camera.position.set(playerX, playerY, 0);
-        camera.update();
-        batch.setProjectionMatrix(camera.combined);
+        float playerX = player.getFloat("x") * WORLD_WIDTH;
+        float playerY = (1f - player.getFloat("y")) * WORLD_HEIGHT;
+
+        if(player.getString("id").equals(conn.playerId)) {
+            camera.position.set(playerX, playerY, 0);
+            camera.update();
+            batch.setProjectionMatrix(camera.combined);
+        }
+
+
         String direction = player.getString("direction");
         boolean moving = player.getBoolean("moving");
         TextureRegion currentFrame = null;
@@ -331,7 +344,7 @@ public class GameScreen implements Screen {
 
     @Override
     public void hide() {
-        dispose();
+//        dispose();
     }
 
     @Override

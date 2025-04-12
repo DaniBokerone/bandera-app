@@ -19,6 +19,7 @@ public class NetworkManager {
     private boolean isConnected = false;
     public JsonValue gameState;
     private static NetworkManager instance;
+    public String playerId;
 
     //MANEJAR CONTADOR JUGADORES
     public interface PlayerCountListener {
@@ -147,6 +148,9 @@ public class NetworkManager {
                     } catch (Exception e) {
                         System.out.println("Error al parsear playerCount: " + e.getMessage());
                     }
+                }else if(response.getString("type").equals("welcome")) {
+                    playerId = response.getString("id");
+                    Gdx.app.log("ID", playerId);
                 }
             }
 

@@ -2,6 +2,7 @@ package com.miniflag;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Net;
+import com.badlogic.gdx.utils.Timer;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
@@ -25,11 +26,16 @@ public class MenuScreen implements Screen {
     private Stage stage;
     private Skin skin;
     private Label playersLabel;
+    private TextButton startButton;
+    private NetworkManager conn;
+
+    private int waitingTime = 0;
 
     private int lastKnownPlayerCount = -1;
 
     public MenuScreen(MainGame game) {
         this.game = game;
+        conn = NetworkManager.getInstance();
     }
 
     @Override
@@ -82,7 +88,7 @@ public class MenuScreen implements Screen {
         stage.addActor(playersLabel);
 
         // Boton Start Game
-        TextButton startButton = new TextButton("Start Game", buttonStyle);
+        startButton = new TextButton("Ready", buttonStyle);
 
         float buttonWidth = Gdx.graphics.getWidth() * 0.3f;
         float buttonHeight = Gdx.graphics.getHeight() * 0.12f;
@@ -99,10 +105,20 @@ public class MenuScreen implements Screen {
         startButton.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                NetworkManager network = game.network;
-                network.testHttpConnection();
-
-                game.startGame();
+                NetworkManager conn = game.network;
+                if(waitingTime == 0) {
+                    conn.sendData("{\"type\":\"ready\", \"id\":\""+conn.playerId+"\"}");
+                    waitingTime = 5;
+                    for(int i = 0; i < 5; i++) {
+                        Timer.schedule(new Timer.Task() {
+                            @Override
+                            public void run() {
+                                waitingTime--;
+                            }
+                        }, i+1);
+                    }
+                    startButton.setDisabled(true);
+                }
             }
         });
 
@@ -115,10 +131,22 @@ public class MenuScreen implements Screen {
     public void render(float delta) {
         ScreenUtils.clear(0.15f, 0.15f, 0.2f, 1f);
 
+        if(waitingTime > 0) {
+            startButton.setText("Waiting... "+waitingTime+"s left");
+        }
+
+        if(conn.gameState != null) {
+            if(conn.gameState.has("started")) {
+                if(conn.gameState.getBoolean("started")) {
+                    game.setScreen(new GameScreen(game));
+                }
+            }
+
+        }
+
         batch.begin();
         String title = "Mini Flag";
 
-        // 🔹 Título más a la izquierda y adaptado al tamaño de pantalla
         float x = Gdx.graphics.getWidth() * 0.35f;
         float y = Gdx.graphics.getHeight() * 0.9f;
         titleFont.draw(batch, title, x, y);
@@ -145,7 +173,7 @@ public class MenuScreen implements Screen {
 
     @Override
     public void hide() {
-        dispose();
+//        dispose();
     }
 
     @Override
