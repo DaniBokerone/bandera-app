@@ -1,12 +1,10 @@
 package com.miniflag;
-
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
-import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
@@ -22,6 +20,9 @@ import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import org.w3c.dom.Text;
 import java.util.ArrayList;
 import com.badlogic.gdx.graphics.g2d.Animation;
+import com.badlogic.gdx.files.FileHandle;
+import com.badlogic.gdx.graphics.OrthographicCamera;
+import com.badlogic.gdx.utils.viewport.FitViewport;
 
 
 public class GameScreen implements Screen {
@@ -30,6 +31,8 @@ public class GameScreen implements Screen {
     private Stage stage;
     private Touchpad touchpad;
     private NetworkManager conn;
+    private OrthographicCamera camera;
+    private FitViewport viewport;
     private ArrayList<Texture> idleCharacters;
     private ArrayList<Texture> runCharacters;
     private Animation<TextureRegion>[][] idleAnimations;
@@ -57,6 +60,10 @@ public class GameScreen implements Screen {
     private final String[] COLORS = {"green", "blue", "darkgreen"};
     private final String[] DIRECTIONS = {"down", "up", "left", "right"};
     private final float FRAME_DURATION = 0.1f;
+    private final float SCREEN_WIDTH = 1920f;
+    private final float SCREEN_HEIGHT = 1080f;
+    private final float WORLD_WIDTH = 3000f;
+    private final float WORLD_HEIGHT = 3000f;
 
     // Fuente e interfaz
     private BitmapFont font;
@@ -64,7 +71,10 @@ public class GameScreen implements Screen {
 
     public GameScreen(MainGame game) {
         this.game = game;
-        this.conn = game.network; // Se asume que la instancia de NetworkManager está en game.network
+        this.conn = game.network;
+        camera = new OrthographicCamera();
+        viewport = new FitViewport(SCREEN_WIDTH, SCREEN_HEIGHT, camera);
+        viewport.apply();// Se asume que la instancia de NetworkManager está en game.network
     }
 
     // Nuevo método que transforma los valores del joystick en una dirección
@@ -101,10 +111,15 @@ public class GameScreen implements Screen {
     @Override
     public void show() {
         batch = new SpriteBatch();
-        stage = new Stage(new ScreenViewport());
+        camera.position.set(camera.viewportWidth / 2, camera.viewportHeight / 2, 0);
+        camera.update();
+
+        batch.setProjectionMatrix(camera.combined);
+        stage = new Stage(viewport, batch);
         Gdx.input.setInputProcessor(stage);
 
-        Skin skin = new Skin(Gdx.files.internal("skin/flat-earth-ui.json"));
+        FileHandle f = Gdx.files.internal("skin/flat-earth-ui.json");
+        Skin skin = new Skin(f);
 
         // Configuración de la fuente usando FreeType
         FreeTypeFontGenerator generator = new FreeTypeFontGenerator(Gdx.files.internal("fonts/Pixel_font.ttf"));
@@ -154,6 +169,10 @@ public class GameScreen implements Screen {
         runCharacters = new ArrayList<>();
         idleAnimations = new Animation[4][4];
         runAnimations = new Animation[4][4];
+        camera = new OrthographicCamera();
+        viewport = new FitViewport(SCREEN_WIDTH, SCREEN_HEIGHT, camera);
+        viewport.apply();
+
         for (int i = 0; i < COLORS.length; i++) {
             String color = COLORS[i];
 
@@ -208,7 +227,7 @@ public class GameScreen implements Screen {
 
         // --- DIBUJO DEL MAPA ---
         batch.begin();
-        batch.draw(backgroundTexture, 0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+        batch.draw(backgroundTexture, 0, 0, WORLD_WIDTH, WORLD_HEIGHT);
         batch.end();
 
         // Dibuja los jugadores con ShapeRenderer
@@ -275,6 +294,9 @@ public class GameScreen implements Screen {
         }
         float playerX = player.getFloat("x") * Gdx.graphics.getWidth();
         float playerY = (1f - player.getFloat("y")) * Gdx.graphics.getHeight();
+        camera.position.set(playerX, playerY, 0);
+        camera.update();
+        batch.setProjectionMatrix(camera.combined);
         String direction = player.getString("direction");
         boolean moving = player.getBoolean("moving");
         TextureRegion currentFrame = null;
@@ -298,7 +320,7 @@ public class GameScreen implements Screen {
 
     @Override
     public void resize(int width, int height) {
-        stage.getViewport().update(width, height, true);
+        viewport.update(width, height);
     }
 
     @Override
