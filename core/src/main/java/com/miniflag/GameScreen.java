@@ -1,7 +1,6 @@
 package com.miniflag;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Net;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
@@ -11,34 +10,39 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
-import com.badlogic.gdx.math.Vector3;
-import com.badlogic.gdx.net.HttpRequestBuilder;
-import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.ui.Touchpad;
 import com.badlogic.gdx.scenes.scene2d.ui.Touchpad.TouchpadStyle;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
-import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
-import com.badlogic.gdx.utils.JsonReader;
 import com.badlogic.gdx.utils.JsonValue;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
+import org.w3c.dom.Text;
+import java.util.ArrayList;
+import com.badlogic.gdx.graphics.g2d.Animation;
+
 
 public class GameScreen implements Screen {
     private MainGame game;
     private SpriteBatch batch;
     private Stage stage;
     private Touchpad touchpad;
-    private NetworkManager conn;  // Usamos conn (o network) para enviar los datos
+    private NetworkManager conn;
+    private ArrayList<Texture> idleCharacters;
+    private ArrayList<Texture> runCharacters;
+    private Animation<TextureRegion>[][] idleAnimations;
+    private Animation<TextureRegion>[][] runAnimations;
 
     // MAPA
     private Texture backgroundTexture;
 
+    private float stateTime = 0;
+
     // PROPIEDADES DEL PLAYER LOCAL
     private float cubeX, cubeY;
-    private float cubeSize = 50f;
+    private float cubeSize = 250f;
     // Para evitar envíos constantes
     private float lastSentX = -1;
     private float lastSentY = -1;
@@ -48,7 +52,11 @@ public class GameScreen implements Screen {
     // LLAVE (u objeto)
     private Texture itemTexture;
     private float itemX, itemY;
-    private float itemSize = 200f;
+    private float itemSize = 250f;
+
+    private final String[] COLORS = {"green", "blue", "darkgreen"};
+    private final String[] DIRECTIONS = {"down", "up", "left", "right"};
+    private final float FRAME_DURATION = 0.1f;
 
     // Fuente e interfaz
     private BitmapFont font;
@@ -137,10 +145,47 @@ public class GameScreen implements Screen {
         touchpad.setBounds(90, 90, Gdx.graphics.getWidth() * 0.15f, Gdx.graphics.getWidth() * 0.15f);
         stage.addActor(touchpad);
 
+        // *********************
         // Cargar el fondo
         backgroundTexture = new Texture("game_assets/map/background.png");
 
-        // Inicializar el player local al centro de la pantalla
+        // Characters load
+        idleCharacters = new ArrayList<>();
+        runCharacters = new ArrayList<>();
+        idleAnimations = new Animation[4][4];
+        runAnimations = new Animation[4][4];
+        for (int i = 0; i < COLORS.length; i++) {
+            String color = COLORS[i];
+
+            // Carga las texturas de sprites
+            Texture idleTexture = new Texture("game_assets/sprites/orc_"+ color + "_idle_full.png");
+            Texture runTexture = new Texture("game_assets/sprites/orc_"+ color + "_walk_full.png");
+
+            idleCharacters.add(idleTexture);
+            runCharacters.add(runTexture);
+
+
+            TextureRegion[][] idleTmp = TextureRegion.split(idleTexture, 64, 64);
+            TextureRegion[][] runTmp = TextureRegion.split(runTexture, 64, 64);
+
+            for (int j = 0; j < 4; j++) { // Para cada dirección (fila)
+                // Para idle: 4 frames por fila
+                TextureRegion[] idleFrames = new TextureRegion[4];
+                for (int k = 0; k < 4; k++) { // 4 columnas en idle
+                    idleFrames[k] = idleTmp[j][k];
+                }
+                idleAnimations[i][j] = new Animation<>(FRAME_DURATION, idleFrames);
+
+                // Para correr: 6 frames por fila
+                TextureRegion[] runFrames = new TextureRegion[6];
+                for (int k = 0; k < 6; k++) { // 6 columnas en run
+                    runFrames[k] = runTmp[j][k];
+                }
+                runAnimations[i][j] = new Animation<>(FRAME_DURATION, runFrames);
+            }
+        }
+
+        // Inicializar el player local al centro de la pantalla ??
         cubeX = Gdx.graphics.getWidth() / 2f - cubeSize / 2f;
         cubeY = Gdx.graphics.getHeight() / 2f - cubeSize / 2f;
 
@@ -149,15 +194,12 @@ public class GameScreen implements Screen {
 
     @Override
     public void render(float delta) {
-        ScreenUtils.clear(0.15f, 0.15f, 0.2f, 1f);
 
-        // --- Actualiza la posición del player local usando el joystick ---
-//        float touchpadX = touchpad.getKnobPercentX();
-//        float touchpadY = touchpad.getKnobPercentY();
-//        float moveSpeed = 5f;
-//        cubeX += touchpadX * moveSpeed;
-//        cubeY += touchpadY * moveSpeed;
-        // Límite de pantalla
+        ScreenUtils.clear(0.15f, 0.15f, 0.2f, 1f);
+        stateTime += Gdx.graphics.getDeltaTime();
+
+
+        // Límite de pantalla ??
         cubeX = Math.max(0, Math.min(cubeX, Gdx.graphics.getWidth() - cubeSize));
         cubeY = Math.max(0, Math.min(cubeY, Gdx.graphics.getHeight() - cubeSize));
 
@@ -171,23 +213,31 @@ public class GameScreen implements Screen {
 
         // Dibuja los jugadores con ShapeRenderer
         if (conn.gameState.has("players")) {
+             batch.begin();
+//            shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+//            shapeRenderer.setColor(Color.BLUE);
+//
+//            for (JsonValue player : conn.gameState.get("players")) {
+//                cubeX = player.getFloat("x") * Gdx.graphics.getWidth();
+//                cubeY = (1f - player.getFloat("y")) * Gdx.graphics.getHeight();
+//              //  System.out.println("Estoy pintando: " + cubeX + " " +  cubeY);
+//                shapeRenderer.rect(cubeX, cubeY, cubeSize, cubeSize);
+//            }
+//
+//            shapeRenderer.end();
+            JsonValue players = conn.gameState.get("players");
+            for(int i = 0; i < players.size; i++) {
+                JsonValue player = players.get(i);
+                drawPlayer(player, COLORS[i]);
 
-            shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
-            shapeRenderer.setColor(Color.BLUE);
-
-            for (JsonValue player : conn.gameState.get("players")) {
-                cubeX = player.getFloat("x") * Gdx.graphics.getWidth();
-                cubeY = (1f - player.getFloat("y")) * Gdx.graphics.getHeight();
-              //  System.out.println("Estoy pintando: " + cubeX + " " +  cubeY);
-                shapeRenderer.rect(cubeX, cubeY, cubeSize, cubeSize);
             }
-
-            shapeRenderer.end();
+            batch.end();
         }
+
 
         if(conn.gameState.has("flagPos")) {
             batch.begin();
-            System.out.println(conn.gameState);
+           // System.out.println(conn.gameState);
             itemX = conn.gameState.get("flagPos").getFloat("dx") * Gdx.graphics.getWidth();
             itemY = (1f - conn.gameState.get("flagPos").getFloat("dy")) * Gdx.graphics.getHeight();
 
@@ -219,6 +269,32 @@ public class GameScreen implements Screen {
         }
     }
 
+    private void drawPlayer(JsonValue player, String color) {
+        if(!player.has("direction") || !player.has("moving")) {
+            return;
+        }
+        float playerX = player.getFloat("x") * Gdx.graphics.getWidth();
+        float playerY = (1f - player.getFloat("y")) * Gdx.graphics.getHeight();
+        String direction = player.getString("direction");
+        boolean moving = player.getBoolean("moving");
+        TextureRegion currentFrame = null;
+        for(int i = 0; i < COLORS.length; i++) {
+            for(int j = 0; j < DIRECTIONS.length; j++) {
+                if(DIRECTIONS[j].equals(direction) && COLORS[i].equals(color)) {
+                    if(moving) {
+                        currentFrame = runAnimations[i][j].getKeyFrame(stateTime, true);
+                    }else {
+                        currentFrame = idleAnimations[i][j].getKeyFrame(stateTime, true);
+                    }
+                }
+            }
+        }
+        if(currentFrame == null) {
+            return;
+        }
+        batch.draw(currentFrame, playerX, playerY, cubeSize, cubeSize);
+
+    }
 
     @Override
     public void resize(int width, int height) {

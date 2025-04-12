@@ -13,6 +13,8 @@ public class NetworkManager {
     // Dirección del host y puerto
     String address = "bandera5.ieti.site";
     int port = 443;
+//    String address = "10.0.2.2";
+//    int port = 3000;
     private WebSocket socket;
     private boolean isConnected = false;
     public JsonValue gameState;
@@ -33,6 +35,8 @@ public class NetworkManager {
 
 
         String wsUrl = "wss://" + address ;
+//        String wsUrl = "ws://" + address + ":" + port ;
+
         System.out.println("Conectando a: " + wsUrl);
 
         // Se crea el socket utilizando la URL de WebSocket configurada
@@ -77,6 +81,8 @@ public class NetworkManager {
         System.out.println("Intentando conexion HTTP...");
         HttpRequestBuilder requestBuilder = new HttpRequestBuilder();
         String fullUrl = "http://" + address +  "/test";
+//        String fullUrl = "http://" + address + ":" + port + "/test";
+
 
         Net.HttpRequest request = requestBuilder.newRequest()
             .method(Net.HttpMethods.GET)
