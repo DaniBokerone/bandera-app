@@ -23,8 +23,6 @@ import java.util.ArrayList;
 public class GameScreen implements Screen {
     private MainGame game;
     private SpriteBatch batch;
-    // Usaremos dos stages: uno para el mundo (si fuera necesario) y otro para la UI (hudStage)
-    // Como la mayoría de la funcionalidad de UI se basa en el stage, aquí usaremos hudStage.
     private Stage hudStage;
     private Touchpad touchpad;
     private NetworkManager conn;
@@ -57,7 +55,6 @@ public class GameScreen implements Screen {
     private final float FRAME_DURATION = 0.1f;
     private final float SCREEN_WIDTH = 1920f;
     private final float SCREEN_HEIGHT = 1080f;
-    // Dimensiones del mundo (para posicionar fondo, jugadores, objetos)
     private final float WORLD_WIDTH = 4000f;
     private final float WORLD_HEIGHT = 3000f;
 
@@ -68,13 +65,11 @@ public class GameScreen implements Screen {
     public GameScreen(MainGame game) {
         this.game = game;
         this.conn = game.network;
-        // Crear la cámara y el viewport para el mundo
         camera = new OrthographicCamera();
         viewport = new FitViewport(SCREEN_WIDTH, SCREEN_HEIGHT, camera);
         viewport.apply();
     }
 
-    // Método para transformar el valor del joystick en dirección
     protected String virtualJoystickControl() {
         float x = touchpad.getKnobPercentX();
         float y = touchpad.getKnobPercentY();
@@ -86,35 +81,30 @@ public class GameScreen implements Screen {
             : (y > 0 ? "up" : "down");
     }
 
-    // Lógica del juego: envía la dirección obtenida
     private void gameLogic() {
         String direction = virtualJoystickControl();
         System.out.println(direction);
-
         conn.sendData("{\"type\":\"direction\", \"value\":\"" + direction + "\"}");
-
     }
 
     @Override
     public void show() {
-        // Inicializamos el SpriteBatch para el mundo
         batch = new SpriteBatch();
-        // Configuramos la cámara con una posición inicial centrada
         camera.position.set(camera.viewportWidth / 2, camera.viewportHeight / 2, 0);
         camera.update();
         batch.setProjectionMatrix(camera.combined);
 
-        // Creamos un stage para la UI con un viewport fijo (ScreenViewport) que no se mueve
         hudStage = new Stage(new ScreenViewport());
-        // Establece el stage de entrada para la UI
         Gdx.input.setInputProcessor(hudStage);
 
         FileHandle f = Gdx.files.internal("skin/flat-earth-ui.json");
         Skin skin = new Skin(f);
 
-        // Configuración de la fuente usando FreeType
-        FreeTypeFontGenerator generator = new FreeTypeFontGenerator(Gdx.files.internal("fonts/Pixel_font.ttf"));
-        FreeTypeFontGenerator.FreeTypeFontParameter parameter = new FreeTypeFontGenerator.FreeTypeFontParameter();
+        FreeTypeFontGenerator generator = new FreeTypeFontGenerator(
+            Gdx.files.internal("fonts/Pixel_font.ttf")
+        );
+        FreeTypeFontGenerator.FreeTypeFontParameter parameter =
+            new FreeTypeFontGenerator.FreeTypeFontParameter();
         parameter.size = (int) (Gdx.graphics.getWidth() * 0.025f);
         font = generator.generateFont(parameter);
         generator.dispose();
@@ -125,17 +115,20 @@ public class GameScreen implements Screen {
         buttonStyle.down = skin.getDrawable("button-p");
 
         exitButton = new TextButton("Menu", buttonStyle);
-        exitButton.setPosition(Gdx.graphics.getWidth() * 0.9f, Gdx.graphics.getHeight() * 0.9f);
+        exitButton.setPosition(
+            Gdx.graphics.getWidth() * 0.9f,
+            Gdx.graphics.getHeight() * 0.9f
+        );
         hudStage.addActor(exitButton);
 
-        // Configuración del Touchpad (joystick)
         TextureRegion touchpadKnob = skin.getRegion("touchpad-knob");
         Pixmap pixmap = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
         pixmap.setColor(1, 1, 1, 0);
         pixmap.fill();
         Texture transparentTexture = new Texture(pixmap);
         pixmap.dispose();
-        TextureRegionDrawable transparentBackgroundDrawable = new TextureRegionDrawable(new TextureRegion(transparentTexture));
+        TextureRegionDrawable transparentBackgroundDrawable =
+            new TextureRegionDrawable(new TextureRegion(transparentTexture));
 
         TextureRegionDrawable knobDrawable = new TextureRegionDrawable(touchpadKnob);
         knobDrawable.setMinWidth(touchpadKnob.getRegionWidth() * 5.5f);
@@ -146,46 +139,48 @@ public class GameScreen implements Screen {
         touchpadStyle.knob = knobDrawable;
 
         touchpad = new Touchpad(10, touchpadStyle);
-        // Posicionar el joystick en coordenadas de pantalla (fijas)
-        touchpad.setBounds(90, 90, Gdx.graphics.getWidth() * 0.15f, Gdx.graphics.getWidth() * 0.15f);
+        touchpad.setBounds(
+            90, 90,
+            Gdx.graphics.getWidth() * 0.15f,
+            Gdx.graphics.getWidth() * 0.15f
+        );
         hudStage.addActor(touchpad);
 
-        // Cargar el fondo (mapa)
         backgroundTexture = new Texture("game_assets/map/background.png");
 
-        // Cargar personajes y animaciones
         idleCharacters = new ArrayList<>();
         runCharacters = new ArrayList<>();
         idleAnimations = new Animation[4][4];
         runAnimations = new Animation[4][4];
-        // No re–inicializamos la cámara ni el viewport para el mundo aquí
         for (int i = 0; i < COLORS.length; i++) {
             String color = COLORS[i];
-            Texture idleTexture = new Texture("game_assets/sprites/orc_" + color + "_idle_full.png");
-            Texture runTexture = new Texture("game_assets/sprites/orc_" + color + "_walk_full.png");
+            Texture idleTexture = new Texture(
+                "game_assets/sprites/orc_" + color + "_idle_full.png"
+            );
+            Texture runTexture = new Texture(
+                "game_assets/sprites/orc_" + color + "_walk_full.png"
+            );
             idleCharacters.add(idleTexture);
             runCharacters.add(runTexture);
             TextureRegion[][] idleTmp = TextureRegion.split(idleTexture, 64, 64);
             TextureRegion[][] runTmp = TextureRegion.split(runTexture, 64, 64);
-            for (int j = 0; j < 4; j++) { // Por cada dirección (fila)
+            for (int j = 0; j < 4; j++) {
                 TextureRegion[] idleFrames = new TextureRegion[4];
-                for (int k = 0; k < 4; k++) { // 4 columnas en idle
+                for (int k = 0; k < 4; k++) {
                     idleFrames[k] = idleTmp[j][k];
                 }
                 idleAnimations[i][j] = new Animation<>(FRAME_DURATION, idleFrames);
 
                 TextureRegion[] runFrames = new TextureRegion[6];
-                for (int k = 0; k < 6; k++) { // 6 columnas en run
+                for (int k = 0; k < 6; k++) {
                     runFrames[k] = runTmp[j][k];
                 }
                 runAnimations[i][j] = new Animation<>(FRAME_DURATION, runFrames);
             }
         }
 
-        // Posición inicial del jugador local
         cubeX = Gdx.graphics.getWidth() / 2f - cubeSize / 2f;
         cubeY = Gdx.graphics.getHeight() / 2f - cubeSize / 2f;
-
         shapeRenderer = new ShapeRenderer();
     }
 
@@ -194,28 +189,32 @@ public class GameScreen implements Screen {
         ScreenUtils.clear(0.15f, 0.15f, 0.2f, 1f);
         stateTime += delta;
 
-        // Actualizar la cámara (para el mundo) según la posición del jugador local, obtenida del gameState si está disponible
+        // 1) Encuentra tu jugador en el gameState
+        float desiredX = cubeX + cubeSize/2;
+        float desiredY = cubeY + cubeSize/2;
         if (conn.gameState != null && conn.gameState.has("players")) {
             JsonValue players = conn.gameState.get("players");
             for (int i = 0; i < players.size; i++) {
-                JsonValue player = players.get(i);
-                if (player.getString("id").equals(conn.playerId)) {
-                    float localX = player.getFloat("x") * WORLD_WIDTH;
-                    float localY = (1f - player.getFloat("y")) * WORLD_HEIGHT;
-                    camera.position.set(localX, localY, 0);
+                JsonValue p = players.get(i);
+                if (p.getString("id").equals(conn.playerId)) {
+                    desiredX = p.getFloat("x") * WORLD_WIDTH;
+                    desiredY = (1f - p.getFloat("y")) * WORLD_HEIGHT;
                     break;
                 }
             }
-        } else {
-            camera.position.set(cubeX + cubeSize / 2, cubeY + cubeSize / 2, 0);
         }
+        // 2) Clampear la cámara para que no salga del mapa
+        float halfW = viewport.getWorldWidth() * 0.5f;
+        float halfH = viewport.getWorldHeight() * 0.5f;
+        float camX = Math.min(Math.max(desiredX, halfW), WORLD_WIDTH  - halfW);
+        float camY = Math.min(Math.max(desiredY, halfH), WORLD_HEIGHT - halfH);
+        camera.position.set(camX, camY, 0);
         camera.update();
         batch.setProjectionMatrix(camera.combined);
 
-        // Lógica del juego: enviar datos según joystick
+        // 3) Resto del render (sin tocar cámara en drawPlayer)
         gameLogic();
 
-        // Dibujo del mundo (fondo, jugadores, objeto) usando la cámara que sigue al jugador
         batch.begin();
         batch.draw(backgroundTexture, 0, 0, WORLD_WIDTH, WORLD_HEIGHT);
         batch.end();
@@ -225,8 +224,14 @@ public class GameScreen implements Screen {
             JsonValue players = conn.gameState.get("players");
             for (int i = 0; i < players.size; i++) {
                 JsonValue player = players.get(i);
-                drawPlayer(player, COLORS[i]);
+                // clamp: no salirse de 0 .. COLORS.length-1
+                int colorIndex = i;
+                if (colorIndex >= COLORS.length) {
+                    colorIndex = COLORS.length - 1;
+                }
+                drawPlayer(player, COLORS[colorIndex]);
             }
+
             batch.end();
         }
 
@@ -234,7 +239,6 @@ public class GameScreen implements Screen {
             batch.begin();
             itemX = conn.gameState.get("flagPos").getFloat("dx") * WORLD_WIDTH;
             itemY = (1f - conn.gameState.get("flagPos").getFloat("dy")) * WORLD_HEIGHT;
-            // Se recomienda cargar itemTexture solo una vez (por ejemplo, en show)
             if (itemTexture == null) {
                 itemTexture = new Texture("game_assets/items/flag.png");
             }
@@ -242,19 +246,21 @@ public class GameScreen implements Screen {
             batch.end();
         }
 
-        // Dibujo de la interfaz (UI) usando el hudStage, que tiene un viewport fijo
-        hudStage.act(Math.min(delta, 1 / 30f));
+        hudStage.act(Math.min(delta, 1/30f));
         hudStage.draw();
 
         if (exitButton.isPressed()) {
             game.startMenu();
         }
 
-        // Enviar posición actual (si ha cambiado) para sincronización
+        // Envío de posición como antes...
         if (conn != null && conn.isConnected()) {
             if (cubeX != lastSentX || cubeY != lastSentY) {
-                String message = String.format("{\"type\":\"position\", \"x\": %.2f, \"y\": %.2f}", cubeX, cubeY);
-                conn.sendData(message);
+                String msg = String.format(
+                    "{\"type\":\"position\",\"x\":%.2f,\"y\":%.2f}",
+                    cubeX, cubeY
+                );
+                conn.sendData(msg);
                 lastSentX = cubeX;
                 lastSentY = cubeY;
             }
@@ -262,56 +268,44 @@ public class GameScreen implements Screen {
     }
 
     private void drawPlayer(JsonValue player, String color) {
-        if (!player.has("direction") || !player.has("moving")) {
-            return;
-        }
-        float playerX = player.getFloat("x") * WORLD_WIDTH;
-        float playerY = (1f - player.getFloat("y")) * WORLD_HEIGHT;
+        if (!player.has("direction") || !player.has("moving")) return;
 
-        if(player.getString("id").equals(conn.playerId)) {
-            camera.position.set(playerX, playerY, 0);
-            camera.update();
-            batch.setProjectionMatrix(camera.combined);
-        }
-
-        String direction = player.getString("direction");
+        // Simplemente dibujamos al jugador; NO TOCAMOS la cámara aquí
+        float px = player.getFloat("x") * WORLD_WIDTH;
+        float py = (1f - player.getFloat("y")) * WORLD_HEIGHT;
         boolean moving = player.getBoolean("moving");
-        TextureRegion currentFrame = null;
+        String dir = player.getString("direction");
+
+        TextureRegion frame = null;
         for (int i = 0; i < COLORS.length; i++) {
+            if (!COLORS[i].equals(color)) continue;
             for (int j = 0; j < DIRECTIONS.length; j++) {
-                if (DIRECTIONS[j].equals(direction) && COLORS[i].equals(color)) {
-                    currentFrame = moving
+                if (DIRECTIONS[j].equals(dir)) {
+                    frame = moving
                         ? runAnimations[i][j].getKeyFrame(stateTime, true)
                         : idleAnimations[i][j].getKeyFrame(stateTime, true);
+                    break;
                 }
             }
+            if (frame != null) break;
         }
-        if (currentFrame == null) {
-            return;
+
+        if (frame != null) {
+            batch.draw(frame, px, py, cubeSize, cubeSize);
         }
-        batch.draw(currentFrame, playerX, playerY, cubeSize, cubeSize);
     }
 
+
     @Override
-    public void resize(int width, int height) {
-        viewport.update(width, height);
-        hudStage.getViewport().update(width, height);
+    public void resize(int w, int h) {
+        viewport.update(w, h);
+        hudStage.getViewport().update(w, h);
     }
 
-    @Override
-    public void pause() { }
-
-    @Override
-    public void resume() { }
-
-    @Override
-    public void hide() {
-//        dispose();
-        
-    }
-
-    @Override
-    public void dispose() {
+    @Override public void pause() {}
+    @Override public void resume() {}
+    @Override public void hide() {}
+    @Override public void dispose() {
         batch.dispose();
         hudStage.dispose();
         backgroundTexture.dispose();
