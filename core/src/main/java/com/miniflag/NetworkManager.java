@@ -148,6 +148,9 @@ public class NetworkManager {
                     } catch (Exception e) {
                         System.out.println("Error al parsear playerCount: " + e.getMessage());
                     }
+                }else if(response.getString("type").equals("welcome")) {
+                    playerId = response.getString("id");
+                    Gdx.app.log("ID", playerId);
                 }
             }
 
