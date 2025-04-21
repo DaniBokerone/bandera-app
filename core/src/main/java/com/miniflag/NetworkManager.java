@@ -19,6 +19,7 @@ public class NetworkManager {
     private boolean isConnected = false;
     public JsonValue gameState;
     private static NetworkManager instance;
+    public String playerId;
 
     //MANEJAR CONTADOR JUGADORES
     public interface PlayerCountListener {
