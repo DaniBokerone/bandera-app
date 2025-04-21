@@ -291,7 +291,9 @@ public class GameScreen implements Screen {
         }
 
         if (frame != null) {
-            batch.draw(frame, px, py, cubeSize, cubeSize);
+            float drawX = px - cubeSize * 0.5f;
+            float drawY = py - cubeSize * 0.5f;
+            batch.draw(frame, drawX, drawY, cubeSize, cubeSize);
         }
     }
 
