@@ -267,6 +267,13 @@ public class GameScreen implements Screen {
         }
         float playerX = player.getFloat("x") * WORLD_WIDTH;
         float playerY = (1f - player.getFloat("y")) * WORLD_HEIGHT;
+
+        if(player.getString("id").equals(conn.playerId)) {
+            camera.position.set(playerX, playerY, 0);
+            camera.update();
+            batch.setProjectionMatrix(camera.combined);
+        }
+
         String direction = player.getString("direction");
         boolean moving = player.getBoolean("moving");
         TextureRegion currentFrame = null;
