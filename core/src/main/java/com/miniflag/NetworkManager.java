@@ -31,7 +31,7 @@ public class NetworkManager {
         this.playerCountListener = listener;
     }
 
-    public NetworkManager() {
+    private NetworkManager() {
         System.out.println("Iniciando NetworkManager...");
 
 
@@ -50,12 +50,19 @@ public class NetworkManager {
         socket.connect();
     }
 
-    public static NetworkManager getInstance() {
-        if(instance == null) {
-            instance = new NetworkManager();
-        }
-        return instance;
+    public static synchronized NetworkManager getInstance() {
+           if (instance == null) {
+                  instance = new NetworkManager();
+           }
+           return instance;
     }
+
+//    public static NetworkManager getInstance() {
+//        if(instance == null) {
+//            instance = new NetworkManager();
+//        }
+//        return instance;
+//    }
 
 
     public void sendData(String data) {

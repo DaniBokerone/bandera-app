@@ -9,7 +9,7 @@ public class MainGame extends Game {
 
     @Override
     public void create() {
-        network = new NetworkManager();
+        network = NetworkManager.getInstance();
 
         network.setPlayerCountListener(count -> {
             currentPlayerCount = count;
