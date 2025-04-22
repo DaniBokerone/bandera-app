@@ -35,7 +35,8 @@ public class NetworkManager {
         System.out.println("Iniciando NetworkManager...");
 
 
-        String wsUrl = "wss://" + address ;
+       // String wsUrl = "wss://" + address ;
+        String wsUrl = "wss://" + address + "?role=player";
 //        String wsUrl = "ws://" + address + ":" + port ;
 
         System.out.println("Conectando a: " + wsUrl);
@@ -116,7 +117,7 @@ public class NetworkManager {
             System.out.println("Conexión WebSocket abierta.");
             isConnected = true;
             // Envía un mensaje inicial al establecer la conexión
-            socket.send("Hola servidor desde MiniFlag!");
+            //socket.send("Hola servidor desde MiniFlag!");
             return true;
         }
 
