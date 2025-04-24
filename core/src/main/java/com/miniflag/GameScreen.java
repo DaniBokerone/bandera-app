@@ -49,6 +49,8 @@ public class GameScreen implements Screen {
     private Texture itemTexture;
     private float itemX, itemY;
     private float itemSize = 250f;
+    private boolean flagVisible = true;
+
 
     private final String[] COLORS = {"green", "blue", "darkgreen"};
     private final String[] DIRECTIONS = {"down", "up", "left", "right"};
@@ -83,8 +85,20 @@ public class GameScreen implements Screen {
 
     private void gameLogic() {
         String direction = virtualJoystickControl();
-        System.out.println(direction);
+        //System.out.println(direction);
         conn.sendData("{\"type\":\"direction\", \"value\":\"" + direction + "\"}");
+    }
+
+    private void onFlagTouched() {
+        System.out.println("¡Bandera tocada!");
+    }
+
+    private boolean isPlayerTouchingFlag(float playerX, float playerY, float playerSize,
+                                         float flagX, float flagY, float flagSize) {
+        return playerX < flagX + flagSize &&
+            playerX + playerSize > flagX &&
+            playerY < flagY + flagSize &&
+            playerY + playerSize > flagY;
     }
 
     @Override
@@ -235,7 +249,7 @@ public class GameScreen implements Screen {
             batch.end();
         }
 
-        if (conn.gameState != null && conn.gameState.has("flagPos")) {
+        if (conn.gameState != null && conn.gameState.has("flagPos") && flagVisible) {
             batch.begin();
             itemX = conn.gameState.get("flagPos").getFloat("dx") * WORLD_WIDTH;
             itemY = (1f - conn.gameState.get("flagPos").getFloat("dy")) * WORLD_HEIGHT;
@@ -244,6 +258,10 @@ public class GameScreen implements Screen {
             }
             batch.draw(itemTexture, itemX, itemY, itemSize, itemSize + 50);
             batch.end();
+
+            if (isPlayerTouchingFlag(cubeX, cubeY, cubeSize, itemX, itemY, itemSize)) {
+                onFlagTouched();
+            }
         }
 
         hudStage.act(Math.min(delta, 1/30f));
