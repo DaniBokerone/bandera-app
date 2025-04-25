@@ -52,6 +52,10 @@ public class GameScreen implements Screen {
     private boolean flagVisible = true;
     private boolean hasFlag = false;
 
+    // OBJETO (MINI FLAG)
+    private Texture smallFlagTexture;
+    private float flagHeadSize;
+
     // OBJETO (BUILDING)
     private Texture buildingTexture;
     private float buildingX, buildingY;
@@ -106,6 +110,7 @@ public class GameScreen implements Screen {
                 conn.sendData(msg);
             }
         }
+        flagVisible = false;
     }
 
     private void winGame(String playerId) {
@@ -214,6 +219,9 @@ public class GameScreen implements Screen {
 
         backgroundTexture = new Texture("game_assets/map/background.png");
 
+        smallFlagTexture = new Texture("game_assets/items/flag.png");
+        flagHeadSize = cubeSize * 0.5f;
+
         idleCharacters = new ArrayList<>();
         runCharacters = new ArrayList<>();
         idleAnimations = new Animation[4][4];
@@ -310,6 +318,7 @@ public class GameScreen implements Screen {
                 drawPlayer(player, COLORS[colorIndex]);
             }
 
+
             batch.end();
         }
 
@@ -322,8 +331,12 @@ public class GameScreen implements Screen {
             }
             batch.draw(itemTexture, itemX, itemY, itemSize, itemSize + 50);
             batch.end();
+//        if (!hasFlag) {
+//            drawGroundFlag();
+//        }
 
-            if (isPlayerTouchingFlag(cubeX, cubeY, cubeSize, itemX, itemY, itemSize)) {
+
+        if (isPlayerTouchingFlag(cubeX, cubeY, cubeSize, itemX, itemY, itemSize)) {
                 onFlagTouched(conn.playerId);
             }
         }
@@ -414,8 +427,27 @@ public class GameScreen implements Screen {
             float drawX = px - cubeSize * 0.5f;
             float drawY = py - cubeSize * 0.5f;
             batch.draw(frame, drawX, drawY, cubeSize, cubeSize);
+
+            // si este jugador tiene la flag, dibuja la pequeña encima
+            if (player.has("hasFlag") && player.getBoolean("hasFlag")) {
+                float flagX = drawX + (cubeSize - flagHeadSize) * 0.5f;
+                float flagY = drawY + cubeSize;  // justo encima de la cabeza
+                batch.draw(smallFlagTexture, flagX, flagY, flagHeadSize, flagHeadSize);
+
+                // asegura que el ground-flag ya no se vea
+                if (player.getString("id").equals(conn.playerId)) {
+                    hasFlag = true;
+                }
+            }
         }
     }
+
+    private void drawGroundFlag() {
+        itemX = conn.gameState.get("flagPos").getFloat("dx") * WORLD_WIDTH;
+        itemY = (1f - conn.gameState.get("flagPos").getFloat("dy")) * WORLD_HEIGHT;
+        batch.draw(itemTexture, itemX, itemY, itemSize, itemSize + 50);
+    }
+
 
 
     @Override
