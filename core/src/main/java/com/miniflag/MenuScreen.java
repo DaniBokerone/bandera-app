@@ -18,6 +18,8 @@ import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton.TextButtonStyle;
 import com.badlogic.gdx.graphics.Color;
+import com.github.czyzby.websocket.WebSockets;
+
 
 public class MenuScreen implements Screen {
     private final MainGame game;
@@ -28,6 +30,7 @@ public class MenuScreen implements Screen {
     private Label playersLabel;
     private TextButton startButton;
     private NetworkManager conn;
+    private boolean readyPressed = false;
 
     private int waitingTime = 0;
 
@@ -40,6 +43,14 @@ public class MenuScreen implements Screen {
 
     @Override
     public void show() {
+       // startButton.setDisabled(true);
+
+        conn = NetworkManager.getInstance();
+
+       // conn.setOnConnectedCallback(() -> startButton.setDisabled(false));
+
+
+        conn.connect();
         batch = new SpriteBatch();
 
         // Crear fuente pixelada personalizada
@@ -108,15 +119,21 @@ public class MenuScreen implements Screen {
                 NetworkManager conn = game.network;
                 if(waitingTime == 0) {
                     conn.sendData("{\"type\":\"ready\", \"id\":\""+conn.playerId+"\"}");
+
                     waitingTime = 5;
                     for(int i = 0; i < 5; i++) {
                         Timer.schedule(new Timer.Task() {
                             @Override
                             public void run() {
                                 waitingTime--;
+
+                                if (waitingTime <= 0) {
+                                    readyPressed = true;
+                                }
                             }
                         }, i+1);
                     }
+
                     startButton.setDisabled(true);
                 }
             }
@@ -129,19 +146,18 @@ public class MenuScreen implements Screen {
 
     @Override
     public void render(float delta) {
+        //WebSockets.;
         ScreenUtils.clear(0.15f, 0.15f, 0.2f, 1f);
 
         if(waitingTime > 0) {
             startButton.setText("Waiting... "+waitingTime+"s left");
         }
 
-        if(conn.gameState != null) {
-            if(conn.gameState.has("started")) {
-                if(conn.gameState.getBoolean("started")) {
-                    game.setScreen(new GameScreen(game));
-                }
-            }
-
+        if (conn.gameState != null
+            && conn.gameState.has("started")
+            && conn.gameState.getBoolean("started")
+            && readyPressed) {
+                game.setScreen(new GameScreen(game));
         }
 
         batch.begin();
@@ -173,7 +189,7 @@ public class MenuScreen implements Screen {
 
     @Override
     public void hide() {
-//        dispose();
+        readyPressed = false;
     }
 
     @Override

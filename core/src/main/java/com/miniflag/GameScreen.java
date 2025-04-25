@@ -200,8 +200,17 @@ public class GameScreen implements Screen {
 
     @Override
     public void render(float delta) {
+//        WebSockets.update();
         ScreenUtils.clear(0.15f, 0.15f, 0.2f, 1f);
         stateTime += delta;
+
+        if(conn.gameState != null) {
+            if(conn.gameState.has("started")) {
+                if(!conn.gameState.getBoolean("started")) {
+                    game.setScreen(new MenuScreen((MainGame) game));
+                }
+            }
+        }
 
         // 1) Encuentra tu jugador en el gameState
         float desiredX = cubeX + cubeSize/2;

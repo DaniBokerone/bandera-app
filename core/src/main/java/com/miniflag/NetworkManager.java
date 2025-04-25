@@ -21,6 +21,12 @@ public class NetworkManager {
     private static NetworkManager instance;
     public String playerId;
 
+    private Runnable onConnectedCallback;
+
+    public void setOnConnectedCallback(Runnable callback) {
+        this.onConnectedCallback = callback;
+    }
+
     //MANEJAR CONTADOR JUGADORES
     public interface PlayerCountListener {
         void onPlayerCountUpdate(int count);
@@ -32,22 +38,22 @@ public class NetworkManager {
     }
 
     private NetworkManager() {
-        System.out.println("Iniciando NetworkManager...");
-
-
-       // String wsUrl = "wss://" + address ;
-        String wsUrl = "wss://" + address + "?role=player";
-//        String wsUrl = "ws://" + address + ":" + port ;
-
-        System.out.println("Conectando a: " + wsUrl);
-
-        // Se crea el socket utilizando la URL de WebSocket configurada
-        socket = WebSockets.newSocket(wsUrl);
-
-        socket.setSendGracefully(false);
-        socket.addListener(new MyWebSocketListener());
-
-        socket.connect();
+//        System.out.println("Iniciando NetworkManager...");
+//
+//
+//       // String wsUrl = "wss://" + address ;
+//        String wsUrl = "wss://" + address + "?role=player";
+////        String wsUrl = "ws://" + address + ":" + port ;
+//
+//        System.out.println("Conectando a: " + wsUrl);
+//
+//        // Se crea el socket utilizando la URL de WebSocket configurada
+//        socket = WebSockets.newSocket(wsUrl);
+//
+//        socket.setSendGracefully(false);
+//        socket.addListener(new MyWebSocketListener());
+//
+//        socket.connect();
     }
 
     public static synchronized NetworkManager getInstance() {
@@ -72,6 +78,15 @@ public class NetworkManager {
         } else {
             System.out.println("No conectado. No se pueden enviar datos.");
         }
+    }
+
+    public void connect() {
+
+        System.out.println("Iniciando NetworkManager...");
+        String wsUrl = "wss://" + address + ":" + port + "/ws?role=player";
+        socket = WebSockets.newSocket(wsUrl);
+        socket.addListener(new MyWebSocketListener());
+        socket.connect();
     }
 
     public void disconnect() {
@@ -119,10 +134,16 @@ public class NetworkManager {
 
     // Listener para gestionar eventos en la conexión WebSocket
     private class MyWebSocketListener implements WebSocketListener {
+
         @Override
         public boolean onOpen(WebSocket webSocket) {
             System.out.println("Conexión WebSocket abierta.");
             isConnected = true;
+            if (onConnectedCallback != null) {
+                Gdx.app.postRunnable(onConnectedCallback);
+            }
+           // Gdx.app.postRunnable(()-> startButton.setDisabled(false));
+
             // Envía un mensaje inicial al establecer la conexión
             //socket.send("Hola servidor desde MiniFlag!");
             return true;
