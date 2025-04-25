@@ -50,6 +50,7 @@ public class GameScreen implements Screen {
     private float itemX, itemY;
     private float itemSize = 250f;
     private boolean flagVisible = true;
+    private boolean hasFlag = false;
 
     // OBJETO (BUILDING)
     private Texture buildingTexture;
@@ -95,8 +96,16 @@ public class GameScreen implements Screen {
         conn.sendData("{\"type\":\"direction\", \"value\":\"" + direction + "\"}");
     }
 
-    private void onFlagTouched() {
-        System.out.println("¡Bandera tocada!");
+    private void onFlagTouched(String playerId) {
+        if (conn != null && conn.isConnected()) {
+            if (cubeX != lastSentX || cubeY != lastSentY) {
+                String msg = String.format(
+                    "{\"type\":\"flagTouch\"}",
+                    playerId
+                );
+                conn.sendData(msg);
+            }
+        }
     }
 
     private void winGame(String playerId) {
@@ -122,6 +131,8 @@ public class GameScreen implements Screen {
 
 
     private boolean isFlagInBuilding(
+
+        boolean hasFlag,
         float playerX, float playerY, float playerSize,
         float buildingX, float buildingY, float buildingSize) {
         // DEBUG: imprime todos los valores y el resultado de cada condición
@@ -130,16 +141,16 @@ public class GameScreen implements Screen {
         boolean cond3 = playerY <  buildingY + buildingSize;
         boolean cond4 = playerY + playerSize > buildingY;
 
-        System.out.printf(
-            "isFlagInBuilding → pX=%.1f, pY=%.1f, pS=%.1f, bX=%.1f, bY=%.1f, bS=%.1f | "
-                + "cond1(pX < bX+bS)=%b, cond2(pX+pS > bX)=%b, "
-                + "cond3(pY < bY+bS)=%b, cond4(pY+pS > bY)=%b%n",
-            playerX, playerY, playerSize,
-            buildingX, buildingY, buildingSize,
-            cond1, cond2, cond3, cond4
-        );
+//        System.out.printf(
+//            "isFlagInBuilding → pX=%.1f, pY=%.1f, pS=%.1f, bX=%.1f, bY=%.1f, bS=%.1f | "
+//                + "cond1(pX < bX+bS)=%b, cond2(pX+pS > bX)=%b, "
+//                + "cond3(pY < bY+bS)=%b, cond4(pY+pS > bY)=%b%n",
+//            playerX, playerY, playerSize,
+//            buildingX, buildingY, buildingSize,
+//            cond1, cond2, cond3, cond4
+//        );
 
-        return cond1 && cond2 && cond3 && cond4;
+        return hasFlag && cond1 && cond2 && cond3 && cond4;
     }
 
     @Override
@@ -313,7 +324,7 @@ public class GameScreen implements Screen {
             batch.end();
 
             if (isPlayerTouchingFlag(cubeX, cubeY, cubeSize, itemX, itemY, itemSize)) {
-                onFlagTouched();
+                onFlagTouched(conn.playerId);
             }
         }
 
@@ -332,7 +343,18 @@ public class GameScreen implements Screen {
                     }
                     batch.draw(buildingTexture, buildingX, buildingY, buildingSize, buildingSize + 50);
 
-                    if (isFlagInBuilding(cubeX, cubeY, cubeSize, buildingX, buildingY, buildingSize)) {
+                    if (conn.gameState != null && conn.gameState.has("players")) {
+                        JsonValue players = conn.gameState.get("players");
+                        for (int j = 0; j < players.size; j++) {
+                            JsonValue p = players.get(j);
+                            if (p.getString("id").equals(conn.playerId)) {
+                                hasFlag = p.getBoolean("hasFlag");
+                                System.out.print("BANDERAAAAAAA: " + hasFlag);
+                            }
+                        }
+                    }
+
+                    if (isFlagInBuilding(hasFlag, cubeX, cubeY, cubeSize, buildingX, buildingY, buildingSize)) {
                         System.out.println("¡Juego ganado!");
                         // winGame(conn.playerId);
                     }
