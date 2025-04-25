@@ -51,6 +51,12 @@ public class GameScreen implements Screen {
     private float itemSize = 250f;
     private boolean flagVisible = true;
 
+    // OBJETO (BUILDING)
+    private Texture buildingTexture;
+    private float buildingX, buildingY;
+    private float buildingSize = 450f;
+    private boolean buildingVisible = true;
+
 
     private final String[] COLORS = {"green", "blue", "darkgreen"};
     private final String[] DIRECTIONS = {"down", "up", "left", "right"};
@@ -93,12 +99,47 @@ public class GameScreen implements Screen {
         System.out.println("¡Bandera tocada!");
     }
 
+    private void winGame(String playerId) {
+        System.out.println("¡Juego ganado!");
+        if (conn != null && conn.isConnected()) {
+            if (cubeX != lastSentX || cubeY != lastSentY) {
+                String msg = String.format(
+                    "{\"type\":\"endGame\"}",
+                    playerId
+                );
+                conn.sendData(msg);
+            }
+        }
+    }
+
     private boolean isPlayerTouchingFlag(float playerX, float playerY, float playerSize,
                                          float flagX, float flagY, float flagSize) {
         return playerX < flagX + flagSize &&
             playerX + playerSize > flagX &&
             playerY < flagY + flagSize &&
             playerY + playerSize > flagY;
+    }
+
+
+    private boolean isFlagInBuilding(
+        float playerX, float playerY, float playerSize,
+        float buildingX, float buildingY, float buildingSize) {
+        // DEBUG: imprime todos los valores y el resultado de cada condición
+        boolean cond1 = playerX <  buildingX + buildingSize;
+        boolean cond2 = playerX + playerSize > buildingX;
+        boolean cond3 = playerY <  buildingY + buildingSize;
+        boolean cond4 = playerY + playerSize > buildingY;
+
+        System.out.printf(
+            "isFlagInBuilding → pX=%.1f, pY=%.1f, pS=%.1f, bX=%.1f, bY=%.1f, bS=%.1f | "
+                + "cond1(pX < bX+bS)=%b, cond2(pX+pS > bX)=%b, "
+                + "cond3(pY < bY+bS)=%b, cond4(pY+pS > bY)=%b%n",
+            playerX, playerY, playerSize,
+            buildingX, buildingY, buildingSize,
+            cond1, cond2, cond3, cond4
+        );
+
+        return cond1 && cond2 && cond3 && cond4;
     }
 
     @Override
@@ -235,6 +276,9 @@ public class GameScreen implements Screen {
         camera.update();
         batch.setProjectionMatrix(camera.combined);
 
+        cubeX = desiredX - cubeSize/2;
+        cubeY = desiredY - cubeSize/2;
+
         // 3) Resto del render (sin tocar cámara en drawPlayer)
         gameLogic();
 
@@ -272,6 +316,33 @@ public class GameScreen implements Screen {
                 onFlagTouched();
             }
         }
+
+        if (conn.gameState != null && conn.gameState.has("buildings") && buildingVisible) {
+
+
+            if (conn.gameState.get("buildings").size > 0) {
+                batch.begin();
+                for (int i = 0; i < conn.gameState.get("buildings").size; i++) {
+
+
+                    buildingX = conn.gameState.get("buildings").get(i).getFloat("dx") * WORLD_WIDTH;
+                    buildingY = (1f - conn.gameState.get("buildings").get(i).getFloat("dy")) * WORLD_HEIGHT;
+                    if (buildingTexture == null) {
+                        buildingTexture = new Texture("game_assets/items/building.png");
+                    }
+                    batch.draw(buildingTexture, buildingX, buildingY, buildingSize, buildingSize + 50);
+
+                    if (isFlagInBuilding(cubeX, cubeY, cubeSize, buildingX, buildingY, buildingSize)) {
+                        System.out.println("¡Juego ganado!");
+                        // winGame(conn.playerId);
+                    }
+                }
+                batch.end();
+
+
+            }
+        }
+
 
         hudStage.act(Math.min(delta, 1/30f));
         hudStage.draw();
