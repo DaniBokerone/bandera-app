@@ -2,23 +2,31 @@ package com.miniflag;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.*;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.ui.Dialog;
+import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.ui.Touchpad;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
+import com.badlogic.gdx.scenes.scene2d.ui.Window;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.files.FileHandle;
+import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.JsonValue;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import java.util.ArrayList;
+import com.badlogic.gdx.Input;
+
+
 
 public class GameScreen implements Screen {
     private MainGame game;
@@ -32,6 +40,11 @@ public class GameScreen implements Screen {
     private ArrayList<Texture> runCharacters;
     private Animation<TextureRegion>[][] idleAnimations;
     private Animation<TextureRegion>[][] runAnimations;
+    private boolean gameEnded = false;
+    private String  winnerId  = null;
+    private boolean dialogShown = false;
+    private Skin skin;
+
 
     // MAPA
     private Texture backgroundTexture;
@@ -114,9 +127,9 @@ public class GameScreen implements Screen {
     }
 
     private void winGame(String playerId) {
-        System.out.println("¡Juego ganado!");
         if (conn != null && conn.isConnected()) {
             if (cubeX != lastSentX || cubeY != lastSentY) {
+                System.out.print("He tocado la bandera");
                 String msg = String.format(
                     "{\"type\":\"endGame\"}",
                     playerId
@@ -169,7 +182,10 @@ public class GameScreen implements Screen {
         Gdx.input.setInputProcessor(hudStage);
 
         FileHandle f = Gdx.files.internal("skin/flat-earth-ui.json");
-        Skin skin = new Skin(f);
+        TextureAtlas atlas = new TextureAtlas(
+            Gdx.files.internal("skin/flat-earth-ui.atlas"));
+        skin = new Skin(f, atlas);
+
 
         FreeTypeFontGenerator generator = new FreeTypeFontGenerator(
             Gdx.files.internal("fonts/Pixel_font.ttf")
@@ -180,10 +196,22 @@ public class GameScreen implements Screen {
         font = generator.generateFont(parameter);
         generator.dispose();
 
+        skin.add("default-font", font, BitmapFont.class);             // 1) fuente
+
+        skin.add("default", new Label.LabelStyle(font, Color.WHITE)); // 2) LabelStyle
+
+        Window.WindowStyle ws = new Window.WindowStyle();             // 3) WindowStyle
+        ws.titleFont  = font;
+        ws.background = skin.newDrawable("button-c", Color.DARK_GRAY);
+        skin.add("default", ws);
+
+
+
         TextButton.TextButtonStyle buttonStyle = new TextButton.TextButtonStyle();
         buttonStyle.font = font;
         buttonStyle.up = skin.getDrawable("button-c");
         buttonStyle.down = skin.getDrawable("button-p");
+        skin.add("default", buttonStyle);
 
         exitButton = new TextButton("Menu", buttonStyle);
         exitButton.setPosition(
@@ -261,10 +289,11 @@ public class GameScreen implements Screen {
     @Override
     public void render(float delta) {
 //        WebSockets.update();
+
         ScreenUtils.clear(0.15f, 0.15f, 0.2f, 1f);
         stateTime += delta;
 
-        if(conn.gameState != null) {
+        if(!gameEnded && conn.gameState != null) {
             if(conn.gameState.has("started")) {
                 if(!conn.gameState.getBoolean("started")) {
                     game.setScreen(new MenuScreen((MainGame) game));
@@ -362,14 +391,15 @@ public class GameScreen implements Screen {
                             JsonValue p = players.get(j);
                             if (p.getString("id").equals(conn.playerId)) {
                                 hasFlag = p.getBoolean("hasFlag");
-                                System.out.print("BANDERAAAAAAA: " + hasFlag);
+                                System.out.println("BANDERAAAAAAA: " + hasFlag);
                             }
                         }
                     }
 
                     if (isFlagInBuilding(hasFlag, cubeX, cubeY, cubeSize, buildingX, buildingY, buildingSize)) {
                         System.out.println("¡Juego ganado!");
-                        // winGame(conn.playerId);
+                        winGame(conn.playerId);
+
                     }
                 }
                 batch.end();
@@ -378,6 +408,11 @@ public class GameScreen implements Screen {
             }
         }
 
+        if (!dialogShown && conn.isGameEnded()) {
+            System.out.println("Ensañando dialogo...");
+            dialogShown = true;  // evita reabrirlo cada frame
+            showGameOverDialog(conn.getWinnerId());
+        }
 
         hudStage.act(Math.min(delta, 1/30f));
         hudStage.draw();
@@ -399,6 +434,52 @@ public class GameScreen implements Screen {
             }
         }
     }
+
+    private void showGameOverDialog(String winner) {
+        Dialog dialog = new Dialog("", skin) {               // sin título
+            @Override public void result(Object obj) { if ((Boolean)obj) Gdx.app.exit(); }
+        };
+
+        // 1. Título “manual”, centrado y grande
+        Label title = new Label("¡GAME OVER!", skin);
+        title.setAlignment(Align.center);
+        title.setFontScale(1.3f);           // letra más grande
+        dialog.getContentTable()
+            .add(title)
+            .padTop(16)                   // margen superior
+            .padBottom(12)
+            .expandX()
+            .row();
+
+        // 2. Texto ganador
+        Label body = new Label("Ha ganado el jugador:\n" + winner, skin);
+        body.setWrap(true);
+        body.setAlignment(Align.center);
+        dialog.getContentTable()
+            .add(body)
+            .width(Gdx.graphics.getWidth()*0.6f - 60)
+            .expandY().top()
+            .row();
+
+        // 3. Botón grande
+        TextButton exitBtn = new TextButton("SALIR", skin);
+        exitBtn.pad(12, 40, 16, 40);
+        dialog.button(exitBtn, true);
+        dialog.getButtonTable().padBottom(24);
+
+        dialog.setMovable(false);
+        dialog.setModal(true);
+        dialog.show(hudStage);
+
+        // Tamaño y posición
+        float w = Gdx.graphics.getWidth()*0.85f;
+        float h = Gdx.graphics.getHeight()*0.40f;
+        dialog.setSize(w, h);
+        dialog.setPosition((Gdx.graphics.getWidth()-w)/2f,
+            (Gdx.graphics.getHeight()-h)/2f);
+    }
+
+
 
     private void drawPlayer(JsonValue player, String color) {
         if (!player.has("direction") || !player.has("moving")) return;

@@ -20,6 +20,8 @@ public class NetworkManager {
     public JsonValue gameState;
     private static NetworkManager instance;
     public String playerId;
+    private boolean gameEnded = false;
+    private String  winnerId  = null;
 
     private Runnable onConnectedCallback;
 
@@ -70,6 +72,14 @@ public class NetworkManager {
 //        return instance;
 //    }
 
+    public boolean isGameEnded() {
+        return gameEnded;
+    }
+
+    public String getWinnerId() {
+        return winnerId;
+    }
+
 
     public void sendData(String data) {
         if (isConnected && socket != null && socket.isOpen()) {
@@ -85,6 +95,7 @@ public class NetworkManager {
         System.out.println("Iniciando NetworkManager...");
         String wsUrl = "wss://" + address + ":" + port + "/ws?role=player";
         socket = WebSockets.newSocket(wsUrl);
+        
         socket.addListener(new MyWebSocketListener());
         socket.connect();
     }
@@ -158,7 +169,7 @@ public class NetworkManager {
 
         @Override
         public boolean onMessage(WebSocket webSocket, String packet) {
-//            System.out.println("Mensaje recibido: " + packet);
+            System.out.println("Mensaje recibido: " + packet);
             JsonReader reader = new JsonReader();
             JsonValue response = reader.parse(packet);
 
@@ -179,7 +190,11 @@ public class NetworkManager {
                     }
                 }else if(response.getString("type").equals("welcome")) {
                     playerId = response.getString("id");
-                    Gdx.app.log("ID", playerId);
+                }else if (response.getString("type").equals("winner")){
+                    System.out.println("FIN JUEGO ");
+                    System.out.println(response);
+                    winnerId  = response.getString("winner");
+                    gameEnded = true;
                 }
             }
 
